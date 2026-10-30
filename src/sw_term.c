@@ -15,7 +15,6 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <conio.h>
-#include <io.h>
 #else
 #include <termios.h>
 #include <unistd.h>
@@ -36,9 +35,9 @@ static int win_getch(void) { return _getch(); }
 static void term_init(void)
 {
     HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-    DWORD m; GetConsoleMode(h, &m);
-    SetConsoleMode(h, m | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-    _setmode(_fileno(stdout), _O_U16TEXT);
+    DWORD m = 0;
+    if (GetConsoleMode(h, &m))
+        SetConsoleMode(h, m | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 }
 #else
 static struct termios orig;

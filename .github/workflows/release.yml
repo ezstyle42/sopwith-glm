@@ -1,0 +1,114 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SDL2 (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+
+      - name: Install SDL2 (macOS)
+        if: runner.os == 'macOS'
+        run: brew install sdl2
+
+      - name: Install SDL2 (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/libsdl-org/SDL/releases/download/release-2.30.10/SDL2-devel-2.30.10-VC.zip -OutFile sdl2.zip
+          Expand-Archive sdl2.zip -DestinationPath .
+          Rename-Item SDL2-2.30.10 SDL2
+          echo "SDL2_DIR=$PWD\\SDL2\\cmake" >> $env:GITHUB_ENV
+
+      - name: Configure & build
+        shell: bash
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+
+      - name: Test (POSIX)
+        if: runner.os != 'Windows'
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          strip build/sw_sdl build/sw_term
+          mkdir -p dist/sopwith-0.1.0-linux-x86_64
+          cp build/sw_sdl build/sw_term dist/sopwith-0.1.0-linux-x86_64/
+          cp README.md LICENSE dist/sopwith-0.1.0-linux-x86_64/
+          tar -czf sopwith-0.1.0-linux-x86_64.tar.gz -C dist sopwith-0.1.0-linux-x86_64
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          mkdir dist
+          Copy-Item build/Release/sw_sdl.exe, build/Release/sw_term.exe dist/
+          Copy-Item SDL2/lib/x64/SDL2.dll dist/
+          Copy-Item README.md, LICENSE dist/
+          Compress-Archive -Path dist/* -Destination sopwith-0.1.0-win64.zip
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          strip build/sw_sdl build/sw_term
+          mkdir -p dist/sopwith-0.1.0-macos
+          cp build/sw_sdl build/sw_term dist/sopwith-0.1.0-macos/
+          cp README.md LICENSE dist/sopwith-0.1.0-macos/
+          tar -czf sopwith-0.1.0-macos.tar.gz -C dist sopwith-0.1.0-macos
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sopwith-${{ runner.os }}
+          path: |
+            sopwith-0.1.0-*.tar.gz
+            sopwith-0.1.0-*.zip
+
+  release:
+    name: Create release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/*.tar.gz dist/*.zip \
+            --title "Sopwith ${GITHUB_REF_NAME}" \
+            --notes "Cross-platform build of the Sopwith reimplementation (v0.1.0).
+
+          **Binaries**
+          - \`sopwith-0.1.0-linux-x86_64.tar.gz\` — Linux (sw_sdl + sw_term)
+          - \`sopwith-0.1.0-win64.zip\` — Windows (sw_sdl.exe + sw_term.exe + SDL2.dll)
+          - \`sopwith-0.1.0-macos.tar.gz\` — macOS
+
+          The terminal frontend (\`sw_term\`) has no dependencies; the graphical
+          frontend (\`sw_sdl\`) uses SDL2 (bundled as SDL2.dll on Windows).
+
+          Controls: \`,\`/\`.\` roll, \`space\` fire, \`b\` bomb, \`x\` boost, \`q\` quit."

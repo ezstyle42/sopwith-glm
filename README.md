@@ -1,5 +1,8 @@
 # Sopwith — modern cross-platform reimplementation
 
+**[Download release v0.1.0](https://github.com/ezstyle42/sopwith-glm/releases/tag/v0.1.0)** — prebuilt binaries for Linux, Windows and macOS.
+
+
 A clean-room, cross-platform reimplementation of the classic 1984
 side-scrolling WWI biplane game **Sopwith** (`sw.exe`, "SOPWITH, Version
 7.F15" — (c) 1984/85/87 BMB Compuscience Canada Ltd., (c) 1994-96

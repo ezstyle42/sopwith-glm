@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
-project(sopwith C)
+project(sopwith VERSION 0.1.0 LANGUAGES C)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 add_library(swcore STATIC src/sopwith.c src/render.c)
+target_compile_definitions(swcore PUBLIC SOPWITH_VERSION="${PROJECT_VERSION}")
 
 find_package(SDL2 QUIET)
 if(SDL2_FOUND)
