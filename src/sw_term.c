@@ -116,9 +116,9 @@ int main(int argc, char **argv)
                 int t = fb[y * SW_SCR_W + x];
                 int b = fb[(y + 1) * SW_SCR_W + x + 1];
                 if (t != last_t)
-                    printf("\033[38;2;%d;%dm", pal[t][0], pal[t][1], pal[t][2]);
+                    printf("\033[38;2;%d;%d;%dm", pal[t][0], pal[t][1], pal[t][2]);
                 if (b != last_b)
-                    printf("\033[48;2;%d;%dm", pal[b][0], pal[b][1], pal[b][2]);
+                    printf("\033[48;2;%d;%d;%dm", pal[b][0], pal[b][1], pal[b][2]);
                 fputs("\xE2\x96\x80", stdout);
                 last_t = t; last_b = b;
             }
