@@ -1,0 +1,30 @@
+cmake_minimum_required(VERSION 3.10)
+project(sopwith C)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+add_library(swcore STATIC src/sopwith.c src/render.c)
+
+find_package(SDL2 QUIET)
+if(SDL2_FOUND)
+    add_executable(sw_sdl src/sw_sdl.c)
+    target_link_libraries(sw_sdl PRIVATE swcore SDL2::SDL2)
+    message(STATUS "SDL2 found - building graphical frontend sw_sdl")
+else()
+    message(STATUS "SDL2 not found - graphical frontend skipped")
+endif()
+
+add_executable(sw_term src/sw_term.c)
+target_link_libraries(sw_term PRIVATE swcore)
+
+if(UNIX)
+    target_link_libraries(sw_term PRIVATE m)
+endif()
+
+add_executable(test_headless src/test_headless.c)
+target_link_libraries(test_headless PRIVATE swcore)
+if(UNIX)
+    target_link_libraries(test_headless PRIVATE m)
+endif()
+enable_testing()
+add_test(NAME headless COMMAND test_headless)
